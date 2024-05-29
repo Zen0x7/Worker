@@ -59,6 +59,8 @@ private:
         if(ec)
             return fail(ec, "accept");
 
+        state_->user_accepted();
+
         // Read a message
         do_read();
     }

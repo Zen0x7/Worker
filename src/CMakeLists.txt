@@ -4,6 +4,10 @@ project(Worker)
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+find_package(Boost 1.85.0 REQUIRED COMPONENTS charconv system date_time regex url json fiber thread program_options random)
+
+include_directories(${Boost_INCLUDE_DIRS})
+
 add_executable(Serve
         main.cpp
         app.cpp
@@ -12,6 +16,7 @@ add_executable(Serve
         entities/consumer.hpp
         network/listener.cpp
         network/listener.hpp
+        network/session.hpp
         network/http_session.cpp
         network/http_session.hpp
         network/websocket_session.cpp
@@ -22,3 +27,5 @@ add_executable(Serve
         network/path_cat.hpp
         state.hpp
 )
+
+target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES})

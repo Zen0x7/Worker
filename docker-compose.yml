@@ -3,5 +3,7 @@ version: "3.9"
 services:
   worker:
     build: .
+    environment:
+      STATE_HOST: "0.0.0.0"
     ports:
       - "3000:3000"
