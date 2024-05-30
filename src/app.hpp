@@ -7,12 +7,18 @@
 #include <boost/asio.hpp>
 
 #include "state.hpp"
+#include "cipher.hpp"
 #include "network/listener.hpp"
 #include "network/session.hpp"
 
 class app {
 public:
     int run() {
+
+        std::string plaintext = "0cd8d4fc-9434-4933-a057-ea8a52a9276c";
+        std::string encrypted = cipher::encrypt(plaintext);
+        std::cout << "Texto encriptado: " << encrypted << std::endl;
+
         if (std::getenv("STATE_HOST") == nullptr)
             throw std::invalid_argument("STATE_HOST is required.");
 

@@ -13,6 +13,7 @@
 #include "../queue.hpp"
 
 #include "fail.hpp"
+#include "../cipher.hpp"
 
 namespace network {
     class session : public std::enable_shared_from_this<session> {
@@ -105,9 +106,12 @@ namespace network {
 
             std::string _transaction_id = boost::uuids::to_string(boost::uuids::random_generator()());
 
+            std::string _registration_token = cipher::encrypt(_transaction_id);
+
             boost::json::object _welcome_message = {
                 {"action", "join"},
-                {"transaction_id", _transaction_id}
+                {"transaction_id", _transaction_id},
+                {"registration_token", _registration_token}
             };
 
             // Send the message
