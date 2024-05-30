@@ -26,6 +26,7 @@ add_executable(Serve
         network/mime_type.hpp
         network/path_cat.hpp
         state.hpp
+        queue.hpp
 )
 
 target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES})

@@ -10,6 +10,8 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "../queue.hpp"
+
 #include "fail.hpp"
 
 namespace network {
@@ -118,22 +120,29 @@ namespace network {
 
         void send(boost::json::object & message) {
             std::string _transaction_id = boost::uuids::to_string(boost::uuids::random_generator()());
+            std::string _action { message.at("action").as_string() };
             message.insert_or_assign("transaction_id", _transaction_id);
+
+            queue::push_back(_transaction_id, _action);
 
             std::string _serialized = boost::json::serialize(message);
             std::cout << "Sending: " << _serialized << std::endl;
+
             ws_.async_write(
                 boost::asio::buffer(_serialized),
                 boost::beast::bind_front_handler(
-                    &session::on_send,
-                    shared_from_this()));
+                    [self = shared_from_this(), _transaction_id] (boost::beast::error_code ec, std::size_t bytes_transferred) {
+                        self->on_send(ec, bytes_transferred, _transaction_id);
+                    }));
         }
 
-        void on_send(boost::beast::error_code ec, std::size_t bytes_transferred) {
+        void on_send(boost::beast::error_code ec, std::size_t bytes_transferred, std::string transaction_id) {
             boost::ignore_unused(bytes_transferred);
 
             if (ec)
                 return fail(ec, "send");
+
+            queue::erase(transaction_id);
         }
 
         void
