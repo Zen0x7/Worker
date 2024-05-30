@@ -29,10 +29,11 @@ namespace queue {
     }
 
     inline void change_status(std::string const &transaction_id, transaction::statusses const status) {
+        using std::chrono::system_clock;
         std::lock_guard scoped_lock(lock);
 
         transactions[transaction_id].status_ = status;
-        transactions[transaction_id].updated_at = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        transactions[transaction_id].updated_at = system_clock::to_time_t(system_clock::now());
     }
 };
 
