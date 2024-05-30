@@ -1,6 +1,8 @@
 #ifndef NETWORK_HANDLE_REQUEST_HPP
 #define NETWORK_HANDLE_REQUEST_HPP
 
+#define HTTP_SERVER_NAME "State"
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 
@@ -19,7 +21,7 @@ handle_request(
     [&req](boost::beast::string_view why)
     {
         boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::bad_request, req.version()};
-        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::server, HTTP_SERVER_NAME);
         res.set(boost::beast::http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
         res.body() = std::string(why);
@@ -32,7 +34,7 @@ handle_request(
     [&req](boost::beast::string_view target)
     {
         boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::not_found, req.version()};
-        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::server, HTTP_SERVER_NAME);
         res.set(boost::beast::http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
         res.body() = "The resource '" + std::string(target) + "' was not found.";
@@ -45,7 +47,7 @@ handle_request(
     [&req](boost::beast::string_view what)
     {
         boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::internal_server_error, req.version()};
-        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::server, HTTP_SERVER_NAME);
         res.set(boost::beast::http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
         res.body() = "An error occurred: '" + std::string(what) + "'";
@@ -89,7 +91,7 @@ handle_request(
     if(req.method() == boost::beast::http::verb::head)
     {
         boost::beast::http::response<boost::beast::http::empty_body> res{boost::beast::http::status::ok, req.version()};
-        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::server, HTTP_SERVER_NAME);
         res.set(boost::beast::http::field::content_type, mime_type(path));
         res.content_length(size);
         res.keep_alive(req.keep_alive());
@@ -101,7 +103,7 @@ handle_request(
         std::piecewise_construct,
         std::make_tuple(std::move(body)),
         std::make_tuple(boost::beast::http::status::ok, req.version())};
-    res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(boost::beast::http::field::server, HTTP_SERVER_NAME);
     res.set(boost::beast::http::field::content_type, mime_type(path));
     res.content_length(size);
     res.keep_alive(req.keep_alive());
