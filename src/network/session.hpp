@@ -142,7 +142,7 @@ namespace network {
             if (ec)
                 return fail(ec, "send");
 
-            queue::erase(transaction_id);
+            queue::change_status(transaction_id, queue::transaction::statusses::SENT);
         }
 
         void
