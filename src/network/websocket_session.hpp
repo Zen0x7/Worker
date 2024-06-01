@@ -10,6 +10,8 @@
 
 #include "fail.hpp"
 
+#define WS_SERVER_NAME "Worker"
+
 namespace network {
 class websocket_session : public std::enable_shared_from_this<websocket_session>
 {
@@ -23,6 +25,10 @@ public:
     websocket_session(boost::asio::ip::tcp::socket&& socket, std::shared_ptr<state> const & state)
         : ws_(std::move(socket)), state_(state)
     {
+    }
+
+    boost::asio::ip::tcp::endpoint remote_endpoint() {
+        return ws_.next_layer().socket().remote_endpoint();
     }
 
     // Start the asynchronous accept operation
@@ -39,9 +45,7 @@ public:
         ws_.set_option(boost::beast::websocket::stream_base::decorator(
             [](boost::beast::websocket::response_type& res)
             {
-                res.set(boost::beast::http::field::server,
-                    std::string(BOOST_BEAST_VERSION_STRING) +
-                        " advanced-server");
+                res.set(boost::beast::http::field::server,std::string(WS_SERVER_NAME));
             }));
 
         // Accept the websocket handshake
@@ -59,7 +63,7 @@ private:
         if(ec)
             return fail(ec, "accept");
 
-        state_->user_accepted();
+        state_->user_accepted(this->remote_endpoint().address().to_string(), this->remote_endpoint().port());
 
         // Read a message
         do_read();

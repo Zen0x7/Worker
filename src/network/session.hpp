@@ -109,7 +109,7 @@ namespace network {
             std::string _registration_token = cipher::encrypt(_transaction_id);
 
             boost::json::object _welcome_message = {
-                {"action", "join"},
+                {"action", "registration"},
                 {"transaction_id", _transaction_id},
                 {"registration_token", _registration_token}
             };

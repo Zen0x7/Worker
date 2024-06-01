@@ -14,9 +14,18 @@ class state {
 public:
     state(std::shared_ptr<network::session> const & session) : session_(session) {}
 
-    void user_accepted() {
+    void user_accepted(std::string address, uint_least16_t port) {
         boost::json::object _accepted_message = {
-            {"action", "user_accepted"}
+            { "action", "accepted" },
+            { "address", address },
+            { "port", port }
+        };
+        session_->send(_accepted_message);
+    }
+
+    void user_disconnected() {
+        boost::json::object _accepted_message = {
+            {"action", "disconnected"}
         };
         session_->send(_accepted_message);
     }
