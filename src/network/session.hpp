@@ -23,11 +23,13 @@ namespace network {
         std::string host_;
 
     public:
+        std::string id_;
+
         // Resolver and socket require an io_context
         explicit
         session(boost::asio::io_context &ioc)
             : resolver_(boost::asio::make_strand(ioc))
-              , ws_(boost::asio::make_strand(ioc)) {
+              , ws_(boost::asio::make_strand(ioc)), id_(boost::uuids::to_string(boost::uuids::random_generator()())) {
         }
 
         // Start the asynchronous operation
@@ -104,13 +106,12 @@ namespace network {
             if (ec)
                 return fail(ec, "handshake");
 
-            std::string _transaction_id = boost::uuids::to_string(boost::uuids::random_generator()());
+            std::string _registration_token = cipher::encrypt(id_);
 
-            std::string _registration_token = cipher::encrypt(_transaction_id);
 
             boost::json::object _welcome_message = {
                 {"action", "registration"},
-                {"transaction_id", _transaction_id},
+                {"transaction_id", id_},
                 {"registration_token", _registration_token}
             };
 
@@ -122,12 +123,10 @@ namespace network {
                     shared_from_this()));
         }
 
-        void send(boost::json::object & message) {
-            std::string _transaction_id = boost::uuids::to_string(boost::uuids::random_generator()());
+        void send(boost::json::object & message, std::string & transaction_id) {
             std::string _action { message.at("action").as_string() };
-            message.insert_or_assign("transaction_id", _transaction_id);
 
-            queue::push_back(_transaction_id, _action);
+            queue::push_back(transaction_id, _action);
 
             std::string _serialized = boost::json::serialize(message);
             std::cout << "Sending: " << _serialized << std::endl;
@@ -135,16 +134,17 @@ namespace network {
             ws_.async_write(
                 boost::asio::buffer(_serialized),
                 boost::beast::bind_front_handler(
-                    [self = shared_from_this(), _transaction_id] (boost::beast::error_code ec, std::size_t bytes_transferred) {
-                        self->on_send(ec, bytes_transferred, _transaction_id);
+                    [self = shared_from_this(), transaction_id] (boost::beast::error_code ec, std::size_t bytes_transferred) {
+                        self->on_send(ec, bytes_transferred, transaction_id);
                     }));
         }
 
         void on_send(boost::beast::error_code ec, std::size_t bytes_transferred, std::string transaction_id) {
             boost::ignore_unused(bytes_transferred);
 
-            if (ec)
+            if (ec) {
                 return fail(ec, "send");
+            }
 
             queue::change_status(transaction_id, queue::transaction::statusses::SENT);
         }
@@ -171,8 +171,9 @@ namespace network {
             std::size_t bytes_transferred) {
             boost::ignore_unused(bytes_transferred);
 
-            if (ec)
+            if (ec) {
                 return fail(ec, "read");
+            }
 
             // The make_printable() function helps print a ConstBufferSequence
             std::cout << "Received: " << boost::beast::make_printable(buffer_.data()) << std::endl;

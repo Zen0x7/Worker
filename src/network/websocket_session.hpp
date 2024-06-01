@@ -19,11 +19,14 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     boost::beast::flat_buffer buffer_;
     std::shared_ptr<state> state_;
 
+
 public:
+    std::string id_;
+
     // Take ownership of the socket
     explicit
     websocket_session(boost::asio::ip::tcp::socket&& socket, std::shared_ptr<state> const & state)
-        : ws_(std::move(socket)), state_(state)
+        : ws_(std::move(socket)), state_(state), id_(boost::uuids::to_string(boost::uuids::random_generator()()))
     {
     }
 
@@ -63,7 +66,7 @@ private:
         if(ec)
             return fail(ec, "accept");
 
-        state_->user_accepted(this->remote_endpoint().address().to_string(), this->remote_endpoint().port());
+        state_->user_accepted(id_, this->remote_endpoint().address().to_string(), this->remote_endpoint().port());
 
         // Read a message
         do_read();
@@ -88,8 +91,10 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         // This indicates that the websocket_session was closed
-        if(ec == boost::beast::websocket::error::closed)
+        if(ec == boost::beast::websocket::error::closed) {
+            state_->user_disconnected(id_);
             return;
+        }
 
         if(ec)
             fail(ec, "read");
@@ -110,8 +115,10 @@ private:
     {
         boost::ignore_unused(bytes_transferred);
 
-        if(ec)
+        if(ec) {
+            state_->user_disconnected(id_);
             return fail(ec, "write");
+        }
 
         // Clear the buffer
         buffer_.consume(buffer_.size());
