@@ -5,18 +5,22 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-
-#include "../state.hpp"
+#include <boost/json.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/random_generator.hpp>
 
 #include "fail.hpp"
 
 #define WS_SERVER_NAME "Worker"
+
+class state;
 
 namespace network {
     class websocket_session : public std::enable_shared_from_this<websocket_session> {
         boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
         boost::beast::flat_buffer buffer_;
         std::shared_ptr<state> state_;
+        std::vector<boost::shared_ptr<std::string const> > queue_;
 
     public:
         std::string id_;
@@ -24,14 +28,37 @@ namespace network {
         // Take ownership of the socket
         explicit
         websocket_session(boost::asio::ip::tcp::socket &&socket,
-                          std::shared_ptr<state> const &state) : ws_(std::move(socket)),
-                                                                 state_(state),
-                                                                 id_(boost::uuids::to_string(
-                                                                     boost::uuids::random_generator()())) {
-        }
+                          std::shared_ptr<state> const &state);
 
         boost::asio::ip::tcp::endpoint remote_endpoint() {
             return ws_.next_layer().socket().remote_endpoint();
+        }
+
+        void send(boost::json::object &data) {
+            auto const _data = boost::make_shared<std::string const>(std::move(serialize(data)));
+
+            boost::asio::post(
+                ws_.get_executor(),
+                boost::beast::bind_front_handler(
+                    &websocket_session::on_send,
+                    shared_from_this(),
+                    _data));
+        }
+
+        void
+        on_send(boost::shared_ptr<std::string const> const &ss) {
+            // Always add to queue
+            queue_.push_back(ss);
+
+            // Are we already writing?
+            if (queue_.size() > 1)
+                return;
+
+            ws_.async_write(
+                boost::asio::buffer(*queue_.front()),
+                boost::beast::bind_front_handler(
+                    &websocket_session::on_write,
+                    shared_from_this()));
         }
 
         // Start the asynchronous accept operation
@@ -59,15 +86,7 @@ namespace network {
 
     private:
         void
-        on_accept(boost::beast::error_code ec) {
-            if (ec)
-                return fail(ec, "accept");
-
-            state_->user_accepted(id_, this->remote_endpoint().address().to_string(), this->remote_endpoint().port());
-
-            // Read a message
-            do_read();
-        }
+        on_accept(boost::beast::error_code ec);
 
         void
         do_read() {
@@ -82,44 +101,12 @@ namespace network {
         void
         on_read(
             boost::beast::error_code ec,
-            std::size_t bytes_transferred) {
-            boost::ignore_unused(bytes_transferred);
-
-            // This indicates that the websocket_session was closed
-            if (ec == boost::beast::websocket::error::closed) {
-                state_->user_disconnected(id_);
-                return;
-            }
-
-            if (ec)
-                fail(ec, "read");
-
-            // Echo the message
-            ws_.text(ws_.got_text());
-            ws_.async_write(
-                buffer_.data(),
-                boost::beast::bind_front_handler(
-                    &websocket_session::on_write,
-                    shared_from_this()));
-        }
+            std::size_t bytes_transferred);
 
         void
         on_write(
             boost::beast::error_code ec,
-            std::size_t bytes_transferred) {
-            boost::ignore_unused(bytes_transferred);
-
-            if (ec) {
-                state_->user_disconnected(id_);
-                return fail(ec, "write");
-            }
-
-            // Clear the buffer
-            buffer_.consume(buffer_.size());
-
-            // Do another read
-            do_read();
-        }
+            std::size_t bytes_transferred);
     };
 };
 

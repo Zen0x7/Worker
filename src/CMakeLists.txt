@@ -15,8 +15,8 @@ add_executable(Serve
         main.cpp
         app.cpp
         app.hpp
-        entities/consumer.cpp
-        entities/consumer.hpp
+        entities/user.cpp
+        entities/user.hpp
         network/listener.cpp
         network/listener.hpp
         network/session.hpp
@@ -31,6 +31,10 @@ add_executable(Serve
         state.hpp
         queue.hpp
         cipher.hpp
+        network/protocol.hpp
+        network/protocol.cpp
+        network/session.cpp
+        state.cpp
 )
 
 target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
