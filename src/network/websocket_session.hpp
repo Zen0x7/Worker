@@ -82,44 +82,12 @@ namespace network {
         void
         on_read(
             boost::beast::error_code ec,
-            std::size_t bytes_transferred) {
-            boost::ignore_unused(bytes_transferred);
-
-            // This indicates that the websocket_session was closed
-            if (ec == boost::beast::websocket::error::closed) {
-                state_->user_disconnected(id_);
-                return;
-            }
-
-            if (ec)
-                fail(ec, "read");
-
-            // Echo the message
-            ws_.text(ws_.got_text());
-            ws_.async_write(
-                buffer_.data(),
-                boost::beast::bind_front_handler(
-                    &websocket_session::on_write,
-                    shared_from_this()));
-        }
+            std::size_t bytes_transferred);
 
         void
         on_write(
             boost::beast::error_code ec,
-            std::size_t bytes_transferred) {
-            boost::ignore_unused(bytes_transferred);
-
-            if (ec) {
-                state_->user_disconnected(id_);
-                return fail(ec, "write");
-            }
-
-            // Clear the buffer
-            buffer_.consume(buffer_.size());
-
-            // Do another read
-            do_read();
-        }
+            std::size_t bytes_transferred);
     };
 };
 

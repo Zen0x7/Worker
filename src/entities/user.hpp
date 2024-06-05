@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace entities {
-    class consumer : std::enable_shared_from_this<consumer> {
+    class user : std::enable_shared_from_this<user> {
 
     };
 }
