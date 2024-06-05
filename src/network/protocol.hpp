@@ -11,14 +11,20 @@
 #include "websocket_session.hpp"
 
 class state;
+class session;
 
 namespace network {
     class protocol {
     public:
-        static std::string handle(
+        static boost::json::object handle(
             boost::json::object &request,
             std::shared_ptr<state> const &state,
             std::shared_ptr<websocket_session> websocket);
+
+        static void react(
+            boost::json::object &request,
+            std::shared_ptr<state> const &state,
+            session * session);
     };
 }
 

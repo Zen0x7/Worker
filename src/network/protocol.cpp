@@ -1,6 +1,6 @@
 #include "protocol.hpp"
 
-std::string network::protocol::handle(boost::json::object &request,
+boost::json::object network::protocol::handle(boost::json::object &request,
                                       std::shared_ptr<state> const &state,
                                       std::shared_ptr<websocket_session> websocket) {
     std::string _action{request.at("action").as_string()};
@@ -42,11 +42,26 @@ std::string network::protocol::handle(boost::json::object &request,
 
                 state->user_broadcast(_message);
 
-                return serialize(success_message);
+                return success_message;
             }
-            return serialize(invalid_values_message);
+            return invalid_values_message;
         }
     }
+    return not_found_message;
+}
 
-    return serialize(not_found_message);
+void network::protocol::react(boost::json::object &request,
+     std::shared_ptr<state> const &state,
+     session * session) {
+    std::string _action{request.at("action").as_string()};
+
+    if (_action == "distribute") {
+        if (request.contains("message")) {
+            if (request.at("message").is_object()) {
+                boost::json::object _message = request.at("message").as_object();
+
+                state->distribute(_message);
+            }
+        }
+    }
 }

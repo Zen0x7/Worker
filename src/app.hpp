@@ -19,8 +19,8 @@ public:
 
         boost::asio::io_context _sync_ioc;
         std::string _state_host = std::getenv("STATE_HOST");
-        auto _state_session = std::make_shared<network::session>(_sync_ioc);
-        _state_session->run(_state_host, "8000");
+        auto _session = std::make_shared<network::session>(_sync_ioc);
+        _session->run(_state_host, "8000");
 
         auto _sync_thread = std::thread([&_sync_ioc]() {
             _sync_ioc.run();
@@ -33,13 +33,12 @@ public:
         auto const _address = boost::asio::ip::make_address("0.0.0.0");
         auto const _port = static_cast<unsigned short>(3000);
         auto const _doc_root = std::make_shared<std::string>("public");
-        auto _state = std::make_shared<state>(_state_session);
 
         std::make_shared<network::listener>(
             _ioc,
             boost::asio::ip::tcp::endpoint{ _address, _port },
             _doc_root,
-            _state
+            _session->state_
             )->run();
 
         boost::asio::signal_set _signals(_ioc, SIGINT, SIGTERM);
@@ -64,7 +63,7 @@ public:
         for(auto& _thread : _threads)
             _thread.join();
 
-        _state_session->close();
+        _session->close();
 
         return EXIT_SUCCESS;
     }
